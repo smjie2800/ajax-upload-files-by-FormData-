@@ -1,0 +1,45 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>FormData Test - lzw.me</title>
+    <script src="js/jquery.min.js"></script>
+</head>
+<body>
+<form id="form">
+    <input type="file" name="file" id="file" />
+    <input type="text" name="name" value="snapshot" />
+    <input type="text" name="dir" value="FC001" />
+    <input type="submit" name="do" id="do" value="submit" />
+</form>
+<script>
+    $("form").submit(function(e){
+        e.preventDefault();
+
+        //通过表单对象创建 FormData
+        var fd = new FormData(document.getElementById("form"));
+
+        //jQuery 方式发送请求
+        $.ajax({
+            type:"post",
+            url:"http://localhost:8080/uploadFile",
+            data: fd,
+            /**
+             * 必须false才会自动加上正确的Content-Type
+             */
+            contentType: false,
+            /**
+             * 必须false才会避开jQuery对 formdata 的默认处理
+             * XMLHttpRequest会对 formdata 进行正确的处理
+             */
+            processData: false,
+            success: function(result){
+                alert(result.result);
+            }
+        });
+
+        return false;
+    });
+</script>
+</body>
+</html>
