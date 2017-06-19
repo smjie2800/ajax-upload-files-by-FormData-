@@ -22,10 +22,14 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  */
 public class UploadFileServlet extends HttpServlet {
 
+    private static long fileSizeMax = 1024*1024;
+    private static long sizeMax = 1024*1024*10;
+
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
 
         //消息提示
         String message = "";
+        String filePath = "";
 
         //得到上传文件的保存目录，将上传的文件存放于WEB-INF目录下，不允许外界直接访问，保证上传文件的安全
         String baseDir = Configurations.getConfig("STREAM_FILE_REPOSITORY");
@@ -63,9 +67,9 @@ public class UploadFileServlet extends HttpServlet {
             }
 
            //设置上传单个文件的大小的最大值，目前是设置为1024*1024字节，也就是1MB
-            upload.setFileSizeMax(1024*1024);
+            upload.setFileSizeMax(fileSizeMax);
             //设置上传文件总量的最大值，最大值=同时上传的多个文件的大小的最大值的和，目前设置为10MB
-            upload.setSizeMax(1024*1024*10);
+            upload.setSizeMax(sizeMax);
             //4、使用ServletFileUpload解析器解析上传数据，解析结果返回的是一个List<FileItem>集合，每一个FileItem对应一个Form表单的输入项
             List<FileItem> list = upload.parseRequest(request);
 
@@ -95,7 +99,7 @@ public class UploadFileServlet extends HttpServlet {
 
                     //注意：不同的浏览器提交的文件名是不一样的，有些浏览器提交上来的文件名是带有路径的，如：  c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt
                     //处理获取到的上传文件的文件名的路径部分，只保留文件名部分
-                    filename = filename.substring(filename.lastIndexOf("\\")+1);
+                    filename = filename.substring(filename.lastIndexOf("/")+1);
                     //得到上传文件的扩展名
                     String fileExtName = filename.substring(filename.lastIndexOf(".")+1);
                     //如果需要限制上传的文件类型，那么可以通过文件的扩展名来判断上传的文件类型是否合法
@@ -109,14 +113,15 @@ public class UploadFileServlet extends HttpServlet {
 
                     //得到文件的保存目录
                     String realSavePath = getDayDir(baseDir, childDir);
+                    filePath = realSavePath + "/" + saveFilename;
 
-                    File saveFile = new File(realSavePath + "\\" + saveFilename);
+                    File saveFile = new File(filePath);
                     if (saveFile.exists()) {
                         saveFile.delete();
                     }
 
                     //创建一个文件输出流
-                    FileOutputStream out = new FileOutputStream(realSavePath + "\\" + saveFilename);
+                    FileOutputStream out = new FileOutputStream(filePath);
                     //创建一个缓冲区
                     byte buffer[] = new byte[1024];
 
@@ -134,25 +139,25 @@ public class UploadFileServlet extends HttpServlet {
 
                     //删除处理文件上传时生成的临时文件
                     item.delete();
-                    message = "文件上传成功！";
+                    message = "upload file success";
                 }
             }
 
          }catch (FileUploadBase.FileSizeLimitExceededException e) {
             e.printStackTrace();
-            message = "单个文件超出最大值！！！";
+            message = "单个文件超出最大值:" + fileSizeMax/(1024*1024) + "M";
 
         }catch (FileUploadBase.SizeLimitExceededException e) {
             e.printStackTrace();
-            message = "上传文件的总的大小超出限制的最大值！！！";
+            message = "上传文件的总的大小超出限制的最大值:" + sizeMax/(1024*1024) + "M";
 
         }catch (Exception e) {
             e.printStackTrace();
-            message= "文件上传失败！";
+            message= "upload file fail";
         }
 
         response.setHeader("Access-Control-Allow-Origin", "*");
-        writeStringToJson(response, "{\"result\":\"" + message + "\"}");
+        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir, "") + "\"}");
     }
 
     public void writeStringToJson(HttpServletResponse response, String string) {
@@ -222,9 +227,9 @@ public class UploadFileServlet extends HttpServlet {
     private String getDayDir(String parentDir, String childDir){
         String path = null;
         if (childDir != null) {
-            path = parentDir + "\\" + sdf.format(new Date()) + "\\" + childDir;
+            path = parentDir + "/" + sdf.format(new Date()) + "/" + childDir;
         } else {
-            path = parentDir + "\\" + sdf.format(new Date());
+            path = parentDir + "/" + sdf.format(new Date());
         }
         return mkDir(path);
     }
