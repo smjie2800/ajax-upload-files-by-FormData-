@@ -157,7 +157,7 @@ public class UploadFileServlet extends HttpServlet {
         }
 
         response.setHeader("Access-Control-Allow-Origin", "*");
-        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir, "") + "\"}");
+        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir+"/", "") + "\"}");
     }
 
     public void writeStringToJson(HttpServletResponse response, String string) {
