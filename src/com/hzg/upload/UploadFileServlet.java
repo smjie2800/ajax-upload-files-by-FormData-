@@ -112,7 +112,7 @@ public class UploadFileServlet extends HttpServlet {
                     String childDir = uploadInfo.get("dir") == null ? null : uploadInfo.get("dir").toString();
 
                     //得到文件的保存目录
-                    String realSavePath = getDayDir(baseDir, childDir);
+                    String realSavePath = getDir(baseDir, childDir);
                     filePath = realSavePath + "/" + saveFilename;
 
                     File saveFile = new File(filePath);
@@ -219,15 +219,15 @@ public class UploadFileServlet extends HttpServlet {
 
 
     /**
-     * 每天作为一个文件夹
+     *
      * @param parentDir 父文件夹
-     * @param parentDir 子文件夹
+     * @param childDir 子文件夹
      * @return
      */
-    private String getDayDir(String parentDir, String childDir){
+    private String getDir(String parentDir, String childDir){
         String path = null;
         if (childDir != null) {
-            path = parentDir + "/" + sdf.format(new Date()) + "/" + childDir;
+            path = parentDir + "/" + childDir;
         } else {
             path = parentDir + "/" + sdf.format(new Date());
         }
