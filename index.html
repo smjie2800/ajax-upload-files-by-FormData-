@@ -21,7 +21,7 @@
 <script type="text/javascript" src="js/stream-v1.js"></script>
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
-	var setDirs = "", imageParentDir = "";
+	var setDirs, uploadPicProducts, k, files;
 
 	/**
 	 * 配置文件（如果没有默认字样，说明默认值就是注释下的值）
@@ -48,6 +48,8 @@
 		 * @param list
 		 */
 		onSelect: function(list) {
+            setDirs = ""; uploadPicProducts = []; k = 0;
+
 			for (var i = 0; i < list.length; i++) {
 			    var fileInfo = list[i].name.split("/");
 
@@ -57,34 +59,47 @@
 
 					$.ajax({
 						type:"post",
-						url:"http://localhost:8080/erp/query/productDescribe",
+						url:"http://localhost:8080/erp/doBusiness/queryProductAccessAllow",
 						contentType: "application/x-www-form-urlencoded; charset=utf-8",
 						data: {no: fileInfo[0]},
 						dataType: "json",
                         async: false,
 
-						success: function(result){
-							for (var j = 0; j < list.length; j++) {
-                                imageParentDir += result.imageParentDirPath + ",";
+						success: function(product){
+							var dirInfo = product.describe.imageParentDirPath.split("/");
 
-								/**
-								 * 重新设置上传目录
-								 **/
-                                var fileInfo = list[j].split("/"), dirInfo = result.imageParentDirPath.split("/");
+							var unUploadFiles = "";
+							for (var j = 0; j < list.size(); j++) {
+								var fileInfo = list[j].name.split("/");
 
-                                if ($.trim(fileInfo[0]) == $.trim(dirInfo[1])) {
-									list[j].name = result.dir + "/" + fileInfo[1];
-									break;
+                                /**
+                                 * 状态为 1 的商品，重新设置上传目录上传。其他的不可以上传
+                                 **/
+                                if (product.state == 1) {
+                                    if ($.trim(fileInfo[0]) == $.trim(dirInfo[1])) {
+                                        list[j].name = product.describe.imageParentDirPath + "/" + fileInfo[1];
+                                    }
+                                } else {
+                                    unUploadFiles += "<br>" + list[j].name;
+                                    list[j] = null;
 								}
 							}
-						}
-					});
 
-                } else {
-				    var imageParentDirArr = imageParentDir.split(",");
-                    list[i].name = imageParentDirArr[pos] + "/" + fileInfo[1];
-				}
+                            if (product.state == 1) {
+                                uploadPicProducts[k++] = product;
+
+                            } else if (unUploadFiles != "") {
+                                var messages = $("#i_stream_message_container").html();
+                                messages += "<br>编号为：" + dirInfo[1] + "的商品，不是入库状态，不能上传以下文件：" + unUploadFiles;
+                                $("#i_stream_message_container").html(messages);
+							}
+
+                        }
+					});
+                }
 			}
+
+            files = list;
 		},
 
 		/**
@@ -92,30 +107,59 @@
 		 */
         onQueueComplete: function() {
             var json = '',
-				imageParentDirArr = imageParentDir.split(","),
 				userId = parseInt(window.parent.document.getElementById("userId").value);
 
-            for (var i = 0; i < imageParentDirArr.length; i++) {
-                json += '{"imageParentDirPath":"' + imageParentDirArr + '",photographer:{"id":' + userId + '}},';
-            }
+            for (k = 0; k < uploadPicProducts; k++) {
+                json += '{"id":' + uploadPicProducts[k].id + ', "no":"' + uploadPicProducts[k].no + '", "photographer":{"id":' + userId + '}}';
+                $.ajax({
+                    type:"post",
+                    url:"http://localhost:8080/erp/doBusiness/updateUploadMediaFilesInfo",
+                    contentType: "application/x-www-form-urlencoded; charset=utf-8",
+                    data: {json: json, sessionId: window.parent.document.getElementById("sessionId").value},
+                    dataType: "json",
+                    async: false,
 
-            json = "{" + json.substr(0, json.length-1) + "}";
+                    success: function(result){
 
-            $.ajax({
-                type:"post",
-                url:"http://localhost:8080/erp/update/productDescribe",
-                contentType: "application/x-www-form-urlencoded; charset=utf-8",
-                data: {json: json},
-                dataType: "json",
+                        if (result.result.indexOf("success") == -1) {
+                            var messages = $("#i_stream_message_container").html();
+                            messages += "<br>编号为：" + uploadPicProducts[k].no + "的商品的文件上传信息更新失败，系统将自动删除其已上传文件。" +
+                                        "<br/>更新失败原因：" + result.result;
+                            $("#i_stream_message_container").html(messages);
 
-                success: function(result){
-                    if (result.result.indexOf("success") != -1) {
-                        alert("上传成功");
-                    } else {
-                        alert(result.result);
+                            var fileInfo = uploadPicProducts[k].describe.imageParentDirPath.split("/");
+
+                            for (var j = 0; j < files.length; j++) {
+                                if (files[j] != null) {
+                                    if (files[j].name.split("/")[0] == fileInfo[1]) {
+
+                                        $.ajax({
+                                            type: "post",
+                                            url: "/stream_hzg_upload/deleteFile",
+                                            contentType: "application/x-www-form-urlencoded; charset=utf-8",
+                                            data: {filePath: files[j].name},
+                                            dataType: "json",
+                                            async: false,
+
+                                            success: function(result) {
+                                                var messages = $("#i_stream_message_container").html();
+
+                                                if (result.result.indexOf("success") != -1) {
+                                                    messages += "<br>已删除其已上传文件。";
+                                                } else {
+                                                    messages += "<br>删除其已上传文件失败。";
+                                                }
+
+                                                $("#i_stream_message_container").html(messages);
+                                            }
+                                        });
+									}
+								}
+							}
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
 	//		autoUploading: false, /** 选择文件后是否自动上传, 默认: true */

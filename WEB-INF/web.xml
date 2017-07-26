@@ -40,4 +40,12 @@
 		<servlet-name>UploadHandleServlet</servlet-name>
 		<url-pattern>/uploadFile</url-pattern>
 	</servlet-mapping>
+	<servlet>
+		<servlet-name>DeleteFileServlet</servlet-name>
+		<servlet-class>com.hzg.upload.DeleteFileServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>DeleteFileServlet</servlet-name>
+		<url-pattern>/deleteFile</url-pattern>
+	</servlet-mapping>
 </web-app>
