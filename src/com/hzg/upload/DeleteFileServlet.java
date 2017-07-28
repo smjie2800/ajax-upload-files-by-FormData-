@@ -1,20 +1,16 @@
 package com.hzg.upload;
 
 import cn.twinkling.stream.config.Configurations;
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadBase;
-import org.apache.commons.fileupload.ProgressListener;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import cn.twinkling.stream.util.HttpRequest;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.lang.reflect.Field;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.nio.file.CopyOption;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 /**
  * @from http://www.cnblogs.com/xdp-gacl/p/4200090.html
@@ -23,17 +19,38 @@ import java.util.*;
  */
 public class DeleteFileServlet extends HttpServlet {
 
-    private static long fileSizeMax = 1024*1024;
-    private static long sizeMax = 1024*1024*10;
-
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String message = "fail";
 
-        String baseDir = Configurations.getConfig("STREAM_FILE_REPOSITORY");
         String filePath =  request.getParameter("filePath");
+
+        String authorizeResult = HttpRequest.sendPost(Configurations.getConfig("authorize_url"),
+                "sessionId=" + request.getParameter("sessionId") + "&uri=" + request.getRequestURI());
+        if (!authorizeResult.contains("success")) {
+
+            message += ",has not privilege to delete file";
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath + "\"}");
+
+            return;
+        }
+
+
+        String baseDir = Configurations.getConfig("STREAM_FILE_REPOSITORY");
+        String deleteDir = Configurations.getConfig("STREAM_FILE_DELETE_REPOSITORY");
+
+        if (!filePath.contains(".")) {
+            message += ",can not delete dir";
+            response.setHeader("Access-Control-Allow-Origin", "*");
+            writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath + "\"}");
+
+            return;
+        }
+
         try {
-            boolean result = new File(baseDir + "/" + filePath).delete();
-            if (result) {
+            File file = new File(baseDir + "/" + filePath);
+            Path path = Files.move(file.toPath(), file.toPath().resolveSibling(baseDir + "/" + deleteDir + "/" + filePath), new CopyOption[0]);
+            if (path != null) {
                 message = "success";
             }
         } catch (Exception e) {

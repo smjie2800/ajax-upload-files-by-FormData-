@@ -21,7 +21,14 @@
 <script type="text/javascript" src="js/stream-v1.js"></script>
 <script type="text/javascript" src="js/jquery.min.js"></script>
 <script type="text/javascript">
-	var setDirs, uploadPicProducts, k, files;
+	var userData;
+	var setDirs, uploadPicProducts, kk, files, tempFilePath, productNo;
+
+    window.addEventListener('message', function(event) {
+		if (event.origin.indexOf("http://localhost:8080") != -1) {
+			userData = JSON.parse(event.data);
+		}
+    }, false);
 
 	/**
 	 * 配置文件（如果没有默认字样，说明默认值就是注释下的值）
@@ -48,55 +55,69 @@
 		 * @param list
 		 */
 		onSelect: function(list) {
-            setDirs = ""; uploadPicProducts = []; k = 0;
+            setDirs = ""; uploadPicProducts = []; kk = 0, files = [], tempFilePath = [], productNo = "";
 
 			for (var i = 0; i < list.length; i++) {
 			    var fileInfo = list[i].name.split("/");
 
-			    var pos = setDirs.indexOf(fileInfo[0]);
+			    var pos = setDirs.indexOf("," + fileInfo[0] + ",");
 				if (pos == -1) {
-				    setDirs += fileInfo[0] + ",";
+                    productNo = fileInfo[0];
+				    setDirs += "," + fileInfo[0] + ",";
 
 					$.ajax({
 						type:"post",
 						url:"http://localhost:8080/erp/doBusiness/queryProductAccessAllow",
 						contentType: "application/x-www-form-urlencoded; charset=utf-8",
-						data: {no: fileInfo[0]},
+						data: {json: JSON.stringify({no: fileInfo[0]}), sessionId: userData.sessionId},
 						dataType: "json",
                         async: false,
 
-						success: function(product){
-							var dirInfo = product.describe.imageParentDirPath.split("/");
+						success: function(result){
+						    var products = JSON.parse(result);
 
-							var unUploadFiles = "";
-							for (var j = 0; j < list.size(); j++) {
-								var fileInfo = list[j].name.split("/");
+						    if (products.length > 0) {
+						        for (var k = 0; k < products.length; k++) {
+						            var product = products[k];
 
-                                /**
-                                 * 状态为 1 的商品，重新设置上传目录上传。其他的不可以上传
-                                 **/
-                                if (product.state == 1) {
-                                    if ($.trim(fileInfo[0]) == $.trim(dirInfo[1])) {
-                                        list[j].name = product.describe.imageParentDirPath + "/" + fileInfo[1];
-                                    }
-                                } else {
-                                    unUploadFiles += "<br>" + list[j].name;
-                                    list[j] = null;
+									var dirInfo = product.describe.imageParentDirPath.split("/");
+
+									for (var j = 0; j < list.length; j++) {
+										var fileInfo1 = list[j].name.split("/");
+
+										/**
+										 * 状态为 1 的商品，重新设置上传目录上传。其他的不可以上传
+										 **/
+										if (product.state == 1 && $.trim(fileInfo1[0]) == $.trim(dirInfo[1])) {
+											tempFilePath[list[j].name] = product.describe.imageParentDirPath + "/" + fileInfo1[1];
+										}
+									}
+
+									if (product.state == 1) {
+										uploadPicProducts[kk++] = product;
+									} else {
+										var messages = $("#i_stream_message_container").html();
+										messages += "<br>编号为：" + dirInfo[1] + "的商品，不是入库状态，不能上传到商品编号目录，<br/>对应文件上传到 temp 文件夹";
+										$("#i_stream_message_container").html(messages);
+									}
 								}
+
+							} else {
+								var messages = $("#i_stream_message_container").html();
+								messages += "<br>查找不到编号为：" + productNo + "的商品，不能上传到商品编号目录，<br/>对应文件上传到 temp 文件夹";
+								$("#i_stream_message_container").html(messages);
 							}
-
-                            if (product.state == 1) {
-                                uploadPicProducts[k++] = product;
-
-                            } else if (unUploadFiles != "") {
-                                var messages = $("#i_stream_message_container").html();
-                                messages += "<br>编号为：" + dirInfo[1] + "的商品，不是入库状态，不能上传以下文件：" + unUploadFiles;
-                                $("#i_stream_message_container").html(messages);
-							}
-
                         }
 					});
                 }
+			}
+
+			for (var i = 0; i < list.length; i++) {
+			    if (tempFilePath[list[i].name] != undefined) {
+                    list[i].name = tempFilePath[list[i].name];
+				} else {
+			        list[i].name = "temp/" + list[i].name;
+				}
 			}
 
             files = list;
@@ -106,16 +127,17 @@
 		 * 所有文件上传完毕的响应事件
 		 */
         onQueueComplete: function() {
-            var json = '',
-				userId = parseInt(window.parent.document.getElementById("userId").value);
+            var json = '';
 
-            for (k = 0; k < uploadPicProducts; k++) {
-                json += '{"id":' + uploadPicProducts[k].id + ', "no":"' + uploadPicProducts[k].no + '", "photographer":{"id":' + userId + '}}';
+            for (kk = 0; kk < uploadPicProducts.length; kk++) {
+                json = '{"id":' + uploadPicProducts[kk].id + ', "no":"' + uploadPicProducts[kk].no + '", ' +
+					'"describe":{"id":' + uploadPicProducts[kk].describe.id + ', "photographer":{"id":' + userData.userId +'}}}';
+
                 $.ajax({
                     type:"post",
                     url:"http://localhost:8080/erp/doBusiness/updateUploadMediaFilesInfo",
                     contentType: "application/x-www-form-urlencoded; charset=utf-8",
-                    data: {json: json, sessionId: window.parent.document.getElementById("sessionId").value},
+                    data: {json: json, sessionId: userData.sessionId},
                     dataType: "json",
                     async: false,
 
@@ -123,21 +145,22 @@
 
                         if (result.result.indexOf("success") == -1) {
                             var messages = $("#i_stream_message_container").html();
-                            messages += "<br>编号为：" + uploadPicProducts[k].no + "的商品的文件上传信息更新失败，系统将自动删除其已上传文件。" +
+                            messages += "<br>编号为：" + uploadPicProducts[kk].no + "的商品的文件上传信息更新失败，系统将自动删除其已上传文件。" +
                                         "<br/>更新失败原因：" + result.result;
                             $("#i_stream_message_container").html(messages);
 
-                            var fileInfo = uploadPicProducts[k].describe.imageParentDirPath.split("/");
+                            var fileInfo = uploadPicProducts[kk].describe.imageParentDirPath.split("/");
+
 
                             for (var j = 0; j < files.length; j++) {
-                                if (files[j] != null) {
-                                    if (files[j].name.split("/")[0] == fileInfo[1]) {
+                                if (files[j].name.indexOf("temp/") == -1) {
+                                    if (files[j].name.split("/")[1] == fileInfo[1]) {
 
                                         $.ajax({
                                             type: "post",
                                             url: "/stream_hzg_upload/deleteFile",
                                             contentType: "application/x-www-form-urlencoded; charset=utf-8",
-                                            data: {filePath: files[j].name},
+                                            data: {filePath: files[j].name, sessionId: window.parent.document.getElementById("sessionId").value},
                                             dataType: "json",
                                             async: false,
 
@@ -145,9 +168,9 @@
                                                 var messages = $("#i_stream_message_container").html();
 
                                                 if (result.result.indexOf("success") != -1) {
-                                                    messages += "<br>已删除其已上传文件。";
+                                                    messages += "<br>已删除其已上传文件:" + files[j].name;
                                                 } else {
-                                                    messages += "<br>删除其已上传文件失败。";
+                                                    messages += "<br>删除其已上传文件" + files[j].name + "失败。";
                                                 }
 
                                                 $("#i_stream_message_container").html(messages);
