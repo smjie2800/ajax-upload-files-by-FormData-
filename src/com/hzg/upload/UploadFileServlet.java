@@ -15,11 +15,6 @@ import org.apache.commons.fileupload.ProgressListener;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
-/**
- * @from http://www.cnblogs.com/xdp-gacl/p/4200090.html
- * @author: ¹Â°Á²ÔÀÇ
- * @date: 2015-1-3 ÏÂÎç11:35:  *
- */
 public class UploadFileServlet extends HttpServlet {
 
     private static long fileSizeMax = 1024*1024;
