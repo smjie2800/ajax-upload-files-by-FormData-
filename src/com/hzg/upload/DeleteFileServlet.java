@@ -12,11 +12,6 @@ import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/**
- * @from http://www.cnblogs.com/xdp-gacl/p/4200090.html
- * @author: ¹Â°Á²ÔÀÇ
- * @date: 2015-1-3 ÏÂÎç11:35:  *
- */
 public class DeleteFileServlet extends HttpServlet {
 
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
