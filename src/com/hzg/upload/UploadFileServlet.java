@@ -110,9 +110,10 @@ public class UploadFileServlet extends HttpServlet {
                     //得到文件保存的名称及路径
                     String saveFilename = uploadInfo.get("name") == null ? filename : uploadInfo.get("name").toString() + "." + fileExtName;
                     String childDir = uploadInfo.get("dir") == null ? null : uploadInfo.get("dir").toString();
+                    String osChildDir = childDir.replace("/", File.separator);
 
                     //得到文件的保存目录
-                    String realSavePath = getDir(baseDir, childDir);
+                    String realSavePath = getDir(baseDir, osChildDir);
                     filePath = realSavePath + File.separator + saveFilename;
 
                     File saveFile = new File(filePath);
@@ -157,7 +158,7 @@ public class UploadFileServlet extends HttpServlet {
         }
 
         response.setHeader("Access-Control-Allow-Origin", "*");
-        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir+File.separator, "") + "\"}");
+        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir+File.separator, "").replace(File.separator, "/") + "\"}");
     }
 
     public void writeStringToJson(HttpServletResponse response, String string) {
