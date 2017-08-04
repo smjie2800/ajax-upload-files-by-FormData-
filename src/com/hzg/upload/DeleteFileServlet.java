@@ -8,9 +8,12 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class DeleteFileServlet extends HttpServlet {
 
@@ -31,7 +34,7 @@ public class DeleteFileServlet extends HttpServlet {
         }
 
 
-        String baseDir = Configurations.getConfig("STREAM_FILE_REPOSITORY");
+        String baseDir = Configurations.getFileRepository();
         String deleteDir = Configurations.getConfig("STREAM_FILE_DELETE_REPOSITORY");
 
         if (!filePath.contains(".")) {
@@ -43,14 +46,26 @@ public class DeleteFileServlet extends HttpServlet {
         }
 
         try {
-            File file = new File(baseDir + "/" + filePath);
-            Path path = Files.move(file.toPath(), file.toPath().resolveSibling(baseDir + "/" + deleteDir + "/" + filePath), new CopyOption[0]);
+            String osFilePath = filePath.replace("/", File.separator);
+
+            String fileName = osFilePath.substring(osFilePath.lastIndexOf(File.separator)+1);
+            String targetParentDir = baseDir + File.separator + deleteDir + File.separator + osFilePath.substring(0, osFilePath.lastIndexOf(File.separator));
+
+            if (!Files.exists(Paths.get(targetParentDir))) {
+                Files.createDirectories(Paths.get(targetParentDir));
+            }
+
+            System.out.println("--------------"+ baseDir + File.separator + osFilePath);
+            System.out.println("========="+ targetParentDir + File.separator + fileName);
+            Path path = Files.move(Paths.get(baseDir + File.separator + osFilePath),
+                    Paths.get(targetParentDir + File.separator + fileName), REPLACE_EXISTING, ATOMIC_MOVE);
+
             if (path != null) {
                 message = "success";
             }
         } catch (Exception e) {
             e.printStackTrace();
-            message += "," + e.getMessage();
+            message = "fail, system error" ;
         }
 
         response.setHeader("Access-Control-Allow-Origin", "*");

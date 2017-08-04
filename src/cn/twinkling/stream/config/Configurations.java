@@ -54,12 +54,24 @@ public class Configurations {
 
     public static String getFileRepository() {
         String val = getConfig("STREAM_FILE_REPOSITORY");
-        if(val == null || val.isEmpty()) {
-            val = REPOSITORY;
+        if (File.separator.equals("\\")) {   //  windows systems
+            val = getConfig("WINDOWS_STREAM_FILE_REPOSITORY");
         }
 
         return val;
     }
+
+    public static String getTempRepository() {
+        String val = getConfig("temp_dir");
+        if (File.separator.equals("\\")) {   //  windows systems
+            val = getConfig("windows_temp_dir");
+        }
+
+        return val;
+    }
+
+
+
 
     public static String getCrossServer() {
         return getConfig("STREAM_CROSS_SERVER");

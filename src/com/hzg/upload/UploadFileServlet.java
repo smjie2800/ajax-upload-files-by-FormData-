@@ -20,7 +20,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
  * @author: 孤傲苍狼
  * @date: 2015-1-3 下午11:35:  *
  */
-
 public class UploadFileServlet extends HttpServlet {
 
     private static long fileSizeMax = 1024*1024;
@@ -33,9 +32,9 @@ public class UploadFileServlet extends HttpServlet {
         String filePath = "";
 
         //得到上传文件的保存目录，将上传的文件存放于WEB-INF目录下，不允许外界直接访问，保证上传文件的安全
-        String baseDir = Configurations.getConfig("STREAM_FILE_REPOSITORY");
+        String baseDir = Configurations.getFileRepository();
         //上传时生成的临时文件保存目录
-        String tempPath = Configurations.getConfig("temp_dir");
+        String tempPath = Configurations.getTempRepository();
 
         File tmpFile = new File(tempPath);
         if (!tmpFile.exists()) {
@@ -100,7 +99,7 @@ public class UploadFileServlet extends HttpServlet {
 
                     //注意：不同的浏览器提交的文件名是不一样的，有些浏览器提交上来的文件名是带有路径的，如：  c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt
                     //处理获取到的上传文件的文件名的路径部分，只保留文件名部分
-                    filename = filename.substring(filename.lastIndexOf("/")+1);
+                    filename = filename.substring(filename.lastIndexOf(File.separator)+1);
                     //得到上传文件的扩展名
                     String fileExtName = filename.substring(filename.lastIndexOf(".")+1);
                     //如果需要限制上传的文件类型，那么可以通过文件的扩展名来判断上传的文件类型是否合法
@@ -114,7 +113,7 @@ public class UploadFileServlet extends HttpServlet {
 
                     //得到文件的保存目录
                     String realSavePath = getDir(baseDir, childDir);
-                    filePath = realSavePath + "/" + saveFilename;
+                    filePath = realSavePath + File.separator + saveFilename;
 
                     File saveFile = new File(filePath);
                     if (saveFile.exists()) {
@@ -158,7 +157,7 @@ public class UploadFileServlet extends HttpServlet {
         }
 
         response.setHeader("Access-Control-Allow-Origin", "*");
-        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir+"/", "") + "\"}");
+        writeStringToJson(response, "{\"result\":\"" + message + "\", \"filePath\":\"" + filePath.replace(baseDir+File.separator, "") + "\"}");
     }
 
     public void writeStringToJson(HttpServletResponse response, String string) {
@@ -205,7 +204,7 @@ public class UploadFileServlet extends HttpServlet {
         int dir1 = hashcode&0xf;  //0--15
         int dir2 = (hashcode&0xf0)>>4;  //0-15
         //构造新的保存目录
-        String dir = savePath + "\\" + dir1 + "\\" + dir2;  //upload\2\3  upload\3\5
+        String dir = savePath + File.separator + dir1 + File.separator + dir2;  //upload\2\3  upload\3\5
         //File既可以代表文件也可以代表目录
         File file = new File(dir);
         //如果目录不存在
@@ -228,9 +227,9 @@ public class UploadFileServlet extends HttpServlet {
     private String getDir(String parentDir, String childDir){
         String path = null;
         if (childDir != null) {
-            path = parentDir + "/" + childDir;
+            path = parentDir + File.separator + childDir;
         } else {
-            path = parentDir + "/" + sdf.format(new Date());
+            path = parentDir + File.separator + sdf.format(new Date());
         }
         return mkDir(path);
     }
