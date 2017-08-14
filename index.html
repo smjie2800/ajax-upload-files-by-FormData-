@@ -25,7 +25,7 @@
 	var setDirs, uploadPicProducts, kk, files, tempFilePath, productNo;
 
     window.addEventListener('message', function(event) {
-		if (event.origin.indexOf("http://localhost:8080") != -1) {
+		if (event.origin.indexOf("portal.demohzg.com") != -1) {
 			userData = JSON.parse(event.data);
 		}
     }, false);
@@ -44,12 +44,12 @@
 		filesQueueHeight : 200, /** 文件上传容器的高度（px）, 默认: 450 */
 		messagerId : "i_stream_message_container", /** 消息显示容器的ID, 默认: i_stream_message_container */
 		multipleFiles: true, /** 多个文件一起上传, 默认: false */
-		uploadURL : "/stream_hzg_upload/upload", /** HTML5上传的URI */
+		uploadURL : "/upload", /** HTML5上传的URI */
 		onRepeatedFile: function(f) {
 			alert("文件："+f.name +" 大小："+f.size + " 已存在于上传队列中。");
 			return false;
 		},
-		tokenURL : "/stream_hzg_upload/tk", /** 根据文件名、大小等信息获取Token的URI（用于生成断点续传、跨域的令牌） */
+		tokenURL : "/tk", /** 根据文件名、大小等信息获取Token的URI（用于生成断点续传、跨域的令牌） */
 		/**
 		 *  选择文件后的响应事件
 		 * @param list
@@ -67,7 +67,7 @@
 
 					$.ajax({
 						type:"post",
-						url:"http://localhost:8080/erp/doBusiness/queryProductAccessAllow",
+						url:"http://portal.demohzg.com/erp/doBusiness/queryProductAccessAllow",
 						contentType: "application/x-www-form-urlencoded; charset=utf-8",
 						data: {json: JSON.stringify({no: fileInfo[0]}), sessionId: userData.sessionId},
 						dataType: "json",
@@ -88,16 +88,16 @@
 										/**
 										 * 状态为 1 的商品，重新设置上传目录上传。其他的不可以上传
 										 **/
-										if (product.state == 1 && $.trim(fileInfo1[0]) == $.trim(dirInfo[1])) {
+										if ((product.state == 1 || product.state == 7) && $.trim(fileInfo1[0]) == $.trim(dirInfo[1])) {
 											tempFilePath[list[j].name] = product.describe.imageParentDirPath + "/" + fileInfo1[1];
 										}
 									}
 
-									if (product.state == 1) {
+									if (product.state == 1 || product.state == 7) {
 										uploadPicProducts[kk++] = product;
 									} else {
 										var messages = $("#i_stream_message_container").html();
-										messages += "<br>编号为：" + dirInfo[1] + "的商品，不是入库状态，不能上传到商品编号目录，<br/>对应文件上传到 temp 文件夹";
+										messages += "<br>编号为：" + dirInfo[1] + "的商品，不是入库状态或可上传文件状态，<br/>不能上传到商品编号目录，对应文件上传到 temp 文件夹";
 										$("#i_stream_message_container").html(messages);
 									}
 								}
@@ -135,7 +135,7 @@
 
                 $.ajax({
                     type:"post",
-                    url:"http://localhost:8080/erp/doBusiness/updateUploadMediaFilesInfo",
+                    url:"http://portal.demohzg.com/erp/doBusiness/updateUploadMediaFilesInfo",
                     contentType: "application/x-www-form-urlencoded; charset=utf-8",
                     data: {json: json, sessionId: userData.sessionId},
                     dataType: "json",
@@ -158,7 +158,7 @@
 
                                         $.ajax({
                                             type: "post",
-                                            url: "/stream_hzg_upload/deleteFile",
+                                            url: "/deleteFile",
                                             contentType: "application/x-www-form-urlencoded; charset=utf-8",
                                             data: {filePath: files[j].name, sessionId: window.parent.document.getElementById("sessionId").value},
                                             dataType: "json",

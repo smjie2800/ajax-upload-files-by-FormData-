@@ -8,6 +8,7 @@ package cn.twinkling.stream.servlet;
 import cn.twinkling.stream.config.Configurations;
 import cn.twinkling.stream.servlet.Range;
 import cn.twinkling.stream.servlet.StreamException;
+import cn.twinkling.stream.util.ImageUtil;
 import cn.twinkling.stream.util.IoUtil;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -123,6 +124,14 @@ public class StreamServlet extends HttpServlet {
                 try {
                     IoUtil.getFile(fileName).delete();
                     Files.move(f.toPath(), f.toPath().resolveSibling(fileName), new CopyOption[0]);
+
+                    // create snapshot image
+                    String filePath = IoUtil.getFile(fileName).getPath();
+                    if (filePath.lastIndexOf(".jpg") != -1) {
+                        ImageUtil.scaleImage(filePath, filePath.replace(".jpg", "-300¡Á184.jpg"), 300, 184);
+                        ImageUtil.scaleImageByPercent(filePath, filePath.replace(".jpg", "-10p.jpg"), 0.1f);
+                    }
+
                     System.out.println("TK: `" + token + "`, NE: `" + fileName + "`");
                     if(Configurations.isDeleteFinished()) {
                         IoUtil.getFile(fileName).delete();
