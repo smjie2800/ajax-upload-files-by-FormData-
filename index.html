@@ -73,9 +73,7 @@
 						dataType: "json",
                         async: false,
 
-						success: function(result){
-						    var products = JSON.parse(result);
-
+						success: function(products){
 						    if (products.length > 0) {
 						        for (var k = 0; k < products.length; k++) {
 						            var product = products[k];
@@ -118,6 +116,8 @@
 				} else {
 			        list[i].name = "temp/" + list[i].name;
 				}
+
+				console.log(list[i].name)
 			}
 
             files = list;
@@ -160,7 +160,7 @@
                                             type: "post",
                                             url: "/deleteFile",
                                             contentType: "application/x-www-form-urlencoded; charset=utf-8",
-                                            data: {filePath: files[j].name, sessionId: window.parent.document.getElementById("sessionId").value},
+                                            data: {filePath: files[j].name, sessionId: userData.sessionId},
                                             dataType: "json",
                                             async: false,
 
